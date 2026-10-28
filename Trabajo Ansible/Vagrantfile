@@ -1,0 +1,53 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+#
+# Práctica 1 · Clúster Big Data virtualizado (HDFS + Spark)
+#   master  -> 192.168.56.20 (NameNode + Spark Master)
+#   worker1 -> 192.168.56.21 (DataNode + Spark Worker)
+#   worker2 -> 192.168.56.22  (DataNode + Spark Worker)
+#
+# Ansible se ejecuta en el anfitrión y entra por SSH con el usuario vagrant.
+
+BOX = "bento/ubuntu-24.04"
+
+NODOS = [
+  { nombre: "master",  ip: "192.168.56.20", mem: 2048, cpus: 2 },
+  { nombre: "worker1", ip: "192.168.56.21", mem: 2048, cpus: 2 },
+  { nombre: "worker2", ip: "192.168.56.22", mem: 2048, cpus: 2 },
+]
+
+Vagrant.configure("2") do |config|
+  config.vm.box = BOX
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  NODOS.each_with_index do |n, i|
+    config.vm.define n[:nombre] do |nodo|
+      nodo.vm.hostname = n[:nombre]
+      nodo.vm.network "private_network", ip: n[:ip]
+
+      nodo.vm.provider "virtualbox" do |vb|
+        vb.name = "bigdata-#{n[:nombre]}"
+        vb.memory = n[:mem]
+        vb.cpus = n[:cpus]
+        vb.check_guest_additions = false
+      end
+
+
+      # Ansible se lanza UNA sola vez, al arrancar la última VM, sobre todas.
+      if i == NODOS.length - 1
+        nodo.vm.provision "ansible" do |ansible|
+          ansible.playbook = "provision/nettools.yml"
+          ansible.limit = "all"
+          ansible.compatibility_mode = "2.0"
+          ansible.groups = {
+            "master"  => ["master"],
+            "workers" => ["worker1", "worker2"],
+          }
+          ansible.extra_vars = {
+            ansible_python_interpreter: "auto_silent",
+          }
+        end
+      end
+    end
+  end
+end

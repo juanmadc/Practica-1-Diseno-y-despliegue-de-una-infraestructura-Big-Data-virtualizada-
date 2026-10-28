@@ -1,0 +1,28 @@
+---
+# Mini playbook de prueba: instala net-tools y comprueba la IP privada.
+- name: Instalar net-tools en todos los nodos
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Actualizar el índice de paquetes apt
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Instalar net-tools
+      ansible.builtin.apt:
+        name: net-tools
+        state: present
+
+    - name: Ejecutar ifconfig
+      ansible.builtin.command: ifconfig
+      register: ifconfig_out
+      changed_when: false
+
+    - name: Verificar que la red privada 192.168.56.0/24 está configurada
+      ansible.builtin.assert:
+        that:
+          - "'192.168.56.' in ifconfig_out.stdout"
+        success_msg: "{{ inventory_hostname }}: red privada OK"
+        fail_msg: "{{ inventory_hostname }}: no tiene IP 192.168.56.x"
