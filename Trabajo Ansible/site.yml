@@ -1,0 +1,8 @@
+---
+# Playbook principal. Cada fase añadirá aquí su rol.
+
+- name: Configuración común de todos los nodos
+  hosts: all
+  become: true
+  roles:
+    - common

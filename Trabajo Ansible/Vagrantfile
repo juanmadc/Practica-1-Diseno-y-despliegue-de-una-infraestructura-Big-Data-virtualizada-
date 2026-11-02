@@ -2,18 +2,20 @@
 # vi: set ft=ruby :
 #
 # Práctica 1 · Clúster Big Data virtualizado (HDFS + Spark)
-#   master  -> 192.168.56.20 (NameNode + Spark Master)
-#   worker1 -> 192.168.56.21 (DataNode + Spark Worker)
-#   worker2 -> 192.168.56.22  (DataNode + Spark Worker)
+#   master  -> 192.168.56.10  (NameNode + Spark Master)
+#   worker1 -> 192.168.56.11  (DataNode + Spark Worker)
+#   worker2 -> 192.168.56.12  (DataNode + Spark Worker)
 #
-# Ansible se ejecuta en el anfitrión y entra por SSH con el usuario vagrant.
+# Ansible se ejecuta en el anfitrión (WSL) y entra por SSH como "vagrant".
+# NODOS es la ÚNICA fuente de verdad de nombres e IPs: Ansible las recibe
+# desde aquí (host_vars), no hay que repetirlas en ningún otro fichero.
 
 BOX = "bento/ubuntu-24.04"
 
 NODOS = [
-  { nombre: "master",  ip: "192.168.56.20", mem: 2048, cpus: 2 },
-  { nombre: "worker1", ip: "192.168.56.21", mem: 2048, cpus: 2 },
-  { nombre: "worker2", ip: "192.168.56.22", mem: 2048, cpus: 2 },
+  { nombre: "master",  ip: "192.168.56.10", mem: 2048, cpus: 2 },
+  { nombre: "worker1", ip: "192.168.56.11", mem: 2048, cpus: 2 },
+  { nombre: "worker2", ip: "192.168.56.12", mem: 2048, cpus: 2 },
 ]
 
 Vagrant.configure("2") do |config|
@@ -32,17 +34,26 @@ Vagrant.configure("2") do |config|
         vb.check_guest_additions = false
       end
 
-
       # Ansible se lanza UNA sola vez, al arrancar la última VM, sobre todas.
       if i == NODOS.length - 1
         nodo.vm.provision "ansible" do |ansible|
-          ansible.playbook = "provision/nettools.yml"
+          ansible.playbook = "site.yml"
           ansible.limit = "all"
           ansible.compatibility_mode = "2.0"
+
+          # Instala en el anfitrión las colecciones de Ansible necesarias
+          # (community.docker). Si ya están instaladas, no hace nada.
+          ansible.galaxy_role_file = "requirements.yml"
+          ansible.galaxy_command = "ansible-galaxy collection install -r %{role_file}"
+
           ansible.groups = {
-            "master"  => ["master"],
+            "masters" => ["master"],
             "workers" => ["worker1", "worker2"],
           }
+
+          # IP privada de cada nodo, disponible en Ansible como {{ ip_privada }}
+          ansible.host_vars = NODOS.to_h { |x| [x[:nombre], { "ip_privada" => x[:ip] }] }
+
           ansible.extra_vars = {
             ansible_python_interpreter: "auto_silent",
           }

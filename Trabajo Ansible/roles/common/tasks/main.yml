@@ -1,0 +1,55 @@
+---
+# Rol common: se aplica a master y workers.
+
+- name: Actualizar el índice de paquetes apt
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Instalar paquetes base, Docker y dependencias de Ansible
+  ansible.builtin.apt:
+    name:
+      - net-tools          # ifconfig, netstat (prueba de clase)
+      - curl
+      - docker.io          # motor Docker
+      - docker-compose-v2  # plugin "docker compose"
+      - python3-docker     # SDK de Python que usa community.docker
+    state: present
+
+- name: Arrancar y habilitar el servicio Docker
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Permitir al usuario vagrant usar Docker sin sudo
+  ansible.builtin.user:
+    name: vagrant
+    groups: docker
+    append: true
+
+# Vagrant deja "127.0.1.1 <hostname>" en /etc/hosts. Esta tarea sustituye esa
+# línea por la IP privada, y añade las de los demás nodos. Así cada nombre
+# resuelve a la IP de la red privada (HDFS y Spark lo necesitan).
+- name: Registrar los nodos del clúster en /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '\s{{ item }}$'
+    line: "{{ hostvars[item].ip_privada }} {{ item }}"
+  loop: "{{ groups['all'] }}"
+
+# --- Verificaciones ---
+
+- name: Comprobar la versión de Docker
+  ansible.builtin.command: docker --version
+  register: docker_version
+  changed_when: false
+
+- name: Comprobar que este nodo ve a todos los demás por nombre
+  ansible.builtin.command: "ping -c 1 -W 2 {{ item }}"
+  loop: "{{ groups['all'] }}"
+  changed_when: false
+
+- name: Mostrar resultado
+  ansible.builtin.debug:
+    msg: "{{ inventory_hostname }}: {{ docker_version.stdout }} y red del clúster OK"
