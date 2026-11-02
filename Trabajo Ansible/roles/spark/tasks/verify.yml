@@ -1,0 +1,20 @@
+---
+# Se ejecuta en el master, cuando los workers ya están arrancados.
+- name: Esperar a que los workers se registren en el Spark Master
+  ansible.builtin.uri:
+    url: "http://{{ spark_master_host }}:{{ spark_master_webui_port }}/json/"
+    return_content: true
+  register: spark_estado
+  until: >-
+    spark_estado.json is defined and
+    (spark_estado.json.workers | selectattr('state', 'equalto', 'ALIVE') | list | length)
+    == (spark_expected_workers | int)
+  retries: 20
+  delay: 6
+  changed_when: false
+
+- name: Spark OK
+  ansible.builtin.debug:
+    msg: >-
+      Spark OK: {{ spark_expected_workers }} workers ALIVE.
+      UI: http://{{ spark_master_host }}:{{ spark_master_webui_port }}

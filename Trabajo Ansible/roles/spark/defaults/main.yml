@@ -1,0 +1,30 @@
+---
+# Imagen oficial de Apache Spark con Python (el job de ejemplo es PySpark).
+# Verifica que la etiqueta existe en Docker Hub.
+spark_image: apache/spark:3.5.3-python3
+
+# Master: IP tomada del Vagrantfile (host_vars ip_privada del primer master)
+spark_master_host: "{{ hostvars[groups['masters'][0]].ip_privada }}"
+spark_master_port: 7077
+spark_master_webui_port: 8080
+spark_worker_webui_port: 8081
+spark_master_url: "spark://{{ spark_master_host }}:{{ spark_master_port }}"
+
+# HDFS (rol hdfs)
+spark_hdfs_url: "hdfs://{{ spark_master_host }}:9000"
+spark_hdfs_replication: 2
+
+# Recursos. Cada worker ofrece 1 core: así el job necesita los dos workers.
+spark_worker_cores: 1
+spark_worker_memory: 512m
+spark_executor_memory: 512m   # mínimo que admite Spark (~450 MB)
+spark_driver_memory: 512m
+spark_daemon_memory: 256m     # heap de los demonios Master/Worker
+
+# Rutas en las VMs
+spark_base_dir: /opt/spark-cluster
+spark_conf_dir: "{{ spark_base_dir }}/conf"
+spark_jobs_dir: "{{ spark_base_dir }}/jobs"
+
+spark_expected_workers: "{{ groups['workers'] | length }}"
+spark_container_name: "{{ 'spark-master' if 'masters' in group_names else 'spark-worker' }}"

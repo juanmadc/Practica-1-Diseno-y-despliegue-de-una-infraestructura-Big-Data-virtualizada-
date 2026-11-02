@@ -1,0 +1,5 @@
+---
+- name: Reiniciar contenedor Spark
+  community.docker.docker_container:
+    name: "{{ spark_container_name }}"
+    restart: true

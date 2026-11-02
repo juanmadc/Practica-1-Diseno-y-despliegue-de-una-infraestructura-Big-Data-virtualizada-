@@ -1,0 +1,57 @@
+---
+- name: Crear los directorios de configuración y de jobs
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ spark_conf_dir }}"
+    - "{{ spark_jobs_dir }}"
+
+- name: Generar spark-defaults.conf
+  ansible.builtin.template:
+    src: spark-defaults.conf.j2
+    dest: "{{ spark_conf_dir }}/spark-defaults.conf"
+    mode: "0644"
+  notify: Reiniciar contenedor Spark
+
+- name: Copiar el job de ejemplo (contador de palabras)
+  ansible.builtin.copy:
+    src: wordcount.py
+    dest: "{{ spark_jobs_dir }}/wordcount.py"
+    mode: "0644"
+
+# network_mode host: los puertos 7077/8080 quedan en la IP de la VM y los
+# ejecutores pueden conectar con el driver sin NAT.
+# HADOOP_USER_NAME=hadoop: Spark escribe en HDFS como el superusuario de HDFS.
+- name: Arrancar el contenedor Spark Master
+  community.docker.docker_container:
+    name: spark-master
+    image: "{{ spark_image }}"
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.master.Master
+      - --host
+      - "{{ spark_master_host }}"
+      - --port
+      - "{{ spark_master_port }}"
+      - --webui-port
+      - "{{ spark_master_webui_port }}"
+    state: started
+    restart_policy: unless-stopped
+    network_mode: host
+    env:
+      SPARK_DAEMON_MEMORY: "{{ spark_daemon_memory }}"
+      HADOOP_USER_NAME: hadoop
+    volumes:
+      - "{{ spark_conf_dir }}/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro"
+      - "{{ spark_jobs_dir }}:/jobs:ro"
+
+- name: Esperar a que el Spark Master acepte conexiones (RPC y web)
+  ansible.builtin.wait_for:
+    host: "{{ spark_master_host }}"
+    port: "{{ item }}"
+    timeout: 180
+  loop:
+    - "{{ spark_master_port }}"
+    - "{{ spark_master_webui_port }}"

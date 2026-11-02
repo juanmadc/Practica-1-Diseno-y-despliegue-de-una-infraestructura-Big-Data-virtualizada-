@@ -1,0 +1,27 @@
+---
+# SPARK_WORKER_CORES / SPARK_WORKER_MEMORY equivalen a --cores / --memory.
+# Limitar los cores por worker obliga a Spark a usar los dos workers.
+- name: Arrancar el contenedor Spark Worker
+  community.docker.docker_container:
+    name: spark-worker
+    image: "{{ spark_image }}"
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.worker.Worker
+      - "{{ spark_master_url }}"
+      - --host
+      - "{{ ip_privada }}"
+      - --webui-port
+      - "{{ spark_worker_webui_port }}"
+      - --cores
+      - "{{ spark_worker_cores }}"
+      - --memory
+      - "{{ spark_worker_memory }}"
+      - --work-dir
+      - /opt/spark/work-dir
+    state: started
+    restart_policy: unless-stopped
+    network_mode: host
+    env:
+      SPARK_DAEMON_MEMORY: "{{ spark_daemon_memory }}"
+      HADOOP_USER_NAME: hadoop

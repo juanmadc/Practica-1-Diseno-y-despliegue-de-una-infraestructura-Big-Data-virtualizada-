@@ -1,0 +1,12 @@
+# Gestionado por Ansible: no editar a mano
+spark.master                       {{ spark_master_url }}
+spark.driver.host                  {{ spark_master_host }}
+spark.driver.memory                {{ spark_driver_memory }}
+spark.executor.memory              {{ spark_executor_memory }}
+spark.executor.cores               {{ spark_worker_cores }}
+spark.cores.max                    {{ spark_expected_workers | int * spark_worker_cores | int }}
+
+# Acceso a HDFS desde Spark
+spark.hadoop.fs.defaultFS          {{ spark_hdfs_url }}
+# Los clientes HDFS usan replicación 3 por defecto; con 2 DataNodes debe ser 2
+spark.hadoop.dfs.replication       {{ spark_hdfs_replication }}

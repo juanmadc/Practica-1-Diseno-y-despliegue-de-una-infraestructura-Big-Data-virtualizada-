@@ -1,0 +1,15 @@
+---
+# Rol spark: Master en masters, Worker en workers, todo en contenedores Docker.
+
+- name: Descargar la imagen de Spark
+  community.docker.docker_image:
+    name: "{{ spark_image }}"
+    source: pull
+
+- name: Desplegar el Spark Master
+  ansible.builtin.include_tasks: master.yml
+  when: "'masters' in group_names"
+
+- name: Desplegar el Spark Worker
+  ansible.builtin.include_tasks: worker.yml
+  when: "'workers' in group_names"
