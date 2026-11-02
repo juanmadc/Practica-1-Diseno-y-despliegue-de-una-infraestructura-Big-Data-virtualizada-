@@ -28,3 +28,25 @@
       ansible.builtin.include_role:
         name: hdfs
         tasks_from: verify
+
+# Spark: primero el Master, después los Workers (necesitan al Master arrancado).
+- name: Spark - Master
+  hosts: masters
+  become: true
+  roles:
+    - spark
+
+- name: Spark - Workers
+  hosts: workers
+  become: true
+  roles:
+    - spark
+
+- name: Spark - Verificación del clúster
+  hosts: masters
+  become: true
+  tasks:
+    - name: Comprobar que Spark tiene todos los workers
+      ansible.builtin.include_role:
+        name: spark
+        tasks_from: verify
