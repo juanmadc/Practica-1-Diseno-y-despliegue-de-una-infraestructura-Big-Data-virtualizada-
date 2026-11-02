@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Gestionado por Ansible: no editar a mano -->
+<configuration>
+  <!-- Requisito del enunciado: replicación 2 -->
+  <property>
+    <name>dfs.replication</name>
+    <value>{{ hdfs_replication }}</value>
+  </property>
+  <property>
+    <name>dfs.namenode.name.dir</name>
+    <value>file:///hadoop/dfs/name</value>
+  </property>
+  <property>
+    <name>dfs.datanode.data.dir</name>
+    <value>file:///hadoop/dfs/data</value>
+  </property>
+  <!-- Los DataNodes se registran por IP, sin exigir DNS inverso -->
+  <property>
+    <name>dfs.namenode.datanode.registration.ip-hostname-check</name>
+    <value>false</value>
+  </property>
+  <!-- Detección rápida de DataNodes caídos (para la demo): 2*10 s + 10*3 s = ~50 s -->
+  <property>
+    <name>dfs.namenode.heartbeat.recheck-interval</name>
+    <value>{{ hdfs_heartbeat_recheck_ms }}</value>
+  </property>
+</configuration>

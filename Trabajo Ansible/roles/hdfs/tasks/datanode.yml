@@ -1,0 +1,23 @@
+---
+- name: Crear el directorio de datos del DataNode
+  ansible.builtin.file:
+    path: "{{ hdfs_datanode_dir }}"
+    state: directory
+    owner: "{{ hdfs_uid }}"
+    group: "{{ hdfs_gid }}"
+    mode: "0755"
+
+- name: Arrancar el contenedor DataNode
+  community.docker.docker_container:
+    name: hdfs-datanode
+    image: "{{ hdfs_image }}"
+    command: hdfs datanode
+    state: started
+    restart_policy: unless-stopped
+    network_mode: host
+    env:
+      HADOOP_HEAPSIZE_MAX: "{{ hdfs_heap }}"
+    volumes:
+      - "{{ hdfs_conf_dir }}/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro"
+      - "{{ hdfs_conf_dir }}/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro"
+      - "{{ hdfs_datanode_dir }}:/hadoop/dfs/data"

@@ -1,0 +1,24 @@
+---
+# Se ejecuta en el master, cuando ya están arrancados los DataNodes.
+- name: Esperar a que se registren todos los DataNodes
+  community.docker.docker_container_exec:
+    container: hdfs-namenode
+    command: hdfs dfsadmin -report
+  register: hdfs_report
+  until: "('Live datanodes (' ~ hdfs_expected_datanodes ~ ')') in hdfs_report.stdout"
+  retries: 20
+  delay: 6
+  changed_when: false
+
+- name: Leer la replicación configurada
+  community.docker.docker_container_exec:
+    container: hdfs-namenode
+    command: hdfs getconf -confKey dfs.replication
+  register: hdfs_repl
+  changed_when: false
+
+- name: Comprobar replicación y DataNodes
+  ansible.builtin.assert:
+    that:
+      - hdfs_repl.stdout | trim == (hdfs_replication | string)
+    success_msg: "HDFS OK: {{ hdfs_expected_datanodes }} DataNodes vivos, replicación {{ hdfs_repl.stdout | trim }}. UI: http://{{ hdfs_namenode_host }}:9870"

@@ -1,8 +1,30 @@
 ---
-# Playbook principal. Cada fase añadirá aquí su rol.
+# Playbook principal. Cada fase añade aquí su rol.
 
 - name: Configuración común de todos los nodos
   hosts: all
   become: true
   roles:
     - common
+
+# Orden de arranque: primero el NameNode (masters), después los DataNodes (workers).
+- name: HDFS - NameNode
+  hosts: masters
+  become: true
+  roles:
+    - hdfs
+
+- name: HDFS - DataNodes
+  hosts: workers
+  become: true
+  roles:
+    - hdfs
+
+- name: HDFS - Verificación del clúster
+  hosts: masters
+  become: true
+  tasks:
+    - name: Comprobar que HDFS tiene todos los DataNodes y replicación 2
+      ansible.builtin.include_role:
+        name: hdfs
+        tasks_from: verify

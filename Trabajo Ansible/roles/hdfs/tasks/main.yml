@@ -1,0 +1,35 @@
+---
+# Rol hdfs: NameNode en masters, DataNode en workers, todo en contenedores Docker.
+
+- name: Crear el directorio de configuración de HDFS
+  ansible.builtin.file:
+    path: "{{ hdfs_conf_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Generar core-site.xml (dirección del NameNode)
+  ansible.builtin.template:
+    src: core-site.xml.j2
+    dest: "{{ hdfs_conf_dir }}/core-site.xml"
+    mode: "0644"
+  notify: Reiniciar contenedor HDFS
+
+- name: Generar hdfs-site.xml (replicación 2)
+  ansible.builtin.template:
+    src: hdfs-site.xml.j2
+    dest: "{{ hdfs_conf_dir }}/hdfs-site.xml"
+    mode: "0644"
+  notify: Reiniciar contenedor HDFS
+
+- name: Descargar la imagen de Hadoop
+  community.docker.docker_image:
+    name: "{{ hdfs_image }}"
+    source: pull
+
+- name: Desplegar el NameNode
+  ansible.builtin.include_tasks: namenode.yml
+  when: "'masters' in group_names"
+
+- name: Desplegar el DataNode
+  ansible.builtin.include_tasks: datanode.yml
+  when: "'workers' in group_names"

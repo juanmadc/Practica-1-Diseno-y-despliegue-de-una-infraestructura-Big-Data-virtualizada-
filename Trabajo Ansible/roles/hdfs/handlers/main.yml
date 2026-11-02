@@ -1,0 +1,5 @@
+---
+- name: Reiniciar contenedor HDFS
+  community.docker.docker_container:
+    name: "{{ hdfs_container_name }}"
+    restart: true

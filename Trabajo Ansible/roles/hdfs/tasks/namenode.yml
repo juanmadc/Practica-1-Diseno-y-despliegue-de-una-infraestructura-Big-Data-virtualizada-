@@ -1,0 +1,55 @@
+---
+- name: Crear el directorio de metadatos del NameNode
+  ansible.builtin.file:
+    path: "{{ hdfs_namenode_dir }}"
+    state: directory
+    owner: "{{ hdfs_uid }}"
+    group: "{{ hdfs_gid }}"
+    mode: "0755"
+
+# Formateo idempotente: solo si el directorio de metadatos aún no existe.
+- name: Comprobar si el NameNode ya está formateado
+  ansible.builtin.stat:
+    path: "{{ hdfs_namenode_dir }}/current/VERSION"
+  register: hdfs_nn_formateado
+
+- name: Formatear el NameNode (solo la primera vez)
+  community.docker.docker_container:
+    name: hdfs-namenode-format
+    image: "{{ hdfs_image }}"
+    command: hdfs namenode -format -nonInteractive
+    detach: false
+    auto_remove: true
+    network_mode: host
+    volumes:
+      - "{{ hdfs_conf_dir }}/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro"
+      - "{{ hdfs_conf_dir }}/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro"
+      - "{{ hdfs_namenode_dir }}:/hadoop/dfs/name"
+  when: not hdfs_nn_formateado.stat.exists
+
+# network_mode host: los puertos (9000, 9870...) quedan en la IP de la VM y los
+# DataNodes se registran con una IP alcanzable desde los demás nodos.
+- name: Arrancar el contenedor NameNode
+  community.docker.docker_container:
+    name: hdfs-namenode
+    image: "{{ hdfs_image }}"
+    command: hdfs namenode
+    state: started
+    restart_policy: unless-stopped
+    network_mode: host
+    env:
+      HADOOP_HEAPSIZE_MAX: "{{ hdfs_heap }}"
+    volumes:
+      - "{{ hdfs_conf_dir }}/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro"
+      - "{{ hdfs_conf_dir }}/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro"
+      - "{{ hdfs_namenode_dir }}:/hadoop/dfs/name"
+
+# Los DataNodes se despliegan después: aquí garantizamos que el NameNode ya responde.
+- name: Esperar a que el NameNode acepte conexiones (RPC y web)
+  ansible.builtin.wait_for:
+    host: "{{ hdfs_namenode_host }}"
+    port: "{{ item }}"
+    timeout: 180
+  loop:
+    - "{{ hdfs_namenode_rpc_port }}"
+    - 9870

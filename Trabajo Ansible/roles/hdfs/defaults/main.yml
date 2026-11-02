@@ -1,0 +1,29 @@
+---
+# Imagen oficial de Apache Hadoop (verifica que la etiqueta existe en Docker Hub)
+hdfs_image: apache/hadoop:3.4.1
+
+# Requisito del enunciado: replicación 2
+hdfs_replication: 2
+
+# Usuario "hadoop" dentro de la imagen (uid/gid 1000)
+hdfs_uid: 1000
+hdfs_gid: 1000
+
+# Rutas en las VMs (bind mounts: los datos sobreviven al contenedor)
+hdfs_base_dir: /opt/hdfs
+hdfs_conf_dir: "{{ hdfs_base_dir }}/conf"
+hdfs_namenode_dir: "{{ hdfs_base_dir }}/namenode"
+hdfs_datanode_dir: "{{ hdfs_base_dir }}/datanode"
+
+# IP del NameNode, tomada del Vagrantfile (host_vars ip_privada del primer master)
+hdfs_namenode_host: "{{ hostvars[groups['masters'][0]].ip_privada }}"
+hdfs_namenode_rpc_port: 9000
+
+# Memoria de la JVM (las VMs tienen 2 GB y compartirán sitio con Spark)
+hdfs_heap: 512m
+
+# Un DataNode sin latidos se da por muerto a los ~50 s en vez de ~10 min
+hdfs_heartbeat_recheck_ms: 10000
+
+hdfs_expected_datanodes: "{{ groups['workers'] | length }}"
+hdfs_container_name: "{{ 'hdfs-namenode' if 'masters' in group_names else 'hdfs-datanode' }}"
