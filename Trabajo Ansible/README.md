@@ -38,7 +38,7 @@ Si falla el aprovisionamiento: `vagrant provision`.
 - Spark Master: http://192.168.56.20:8080
 - Spark Workers: http://192.168.56.21:8081 y http://192.168.56.22:8081
 
-## Prueba 1. Subir un fichero a HDFS y comprobar la replicación
+## Prueba 1. Subir un fichero a HDFS y comprobar la replicación (desde master todo)
 ```bash
 vagrant ssh master
 docker exec hdfs-namenode bash -c 'seq 1 20000 | awk "{print \"Linea \" \$1 \": hola mundo spark hdfs docker ansible vagrant\"}" > /tmp/prueba.txt'
@@ -52,7 +52,7 @@ docker exec hdfs-namenode hdfs dfs -ls /data
 docker exec hdfs-namenode hdfs fsck /data/prueba.txt -files -blocks -locations
 ```
 
-## Prueba 2. Lanzar el job de Spark con salida en HDFS
+## Prueba 2. Lanzar el job de Spark con salida en HDFS (desde master todo)
 ```bash
 # Con este comando vemos cuantas tareas realiza cada worker, deberian tener el mismo numero
 docker exec spark-master /opt/spark/bin/spark-submit /jobs/wordcount.py hdfs:///data/prueba.txt hdfs:///data/salida
@@ -61,13 +61,31 @@ docker exec hdfs-namenode hdfs dfs -ls /data/salida
 # Este comando muestra el numero de palabras repetidas que ha contado
 docker exec hdfs-namenode hdfs dfs -cat /data/salida/part-* | head
 
-## Prueba de tolerancia a fallos
+
+## Prueba 3. Parar un worker y leer el fichero
 ```bash
-vagrant halt worker1
-vagrant ssh master
-docker exec namenode hdfs dfs -cat /data/big.txt | head -3
-docker exec namenode hdfs fsck /data/big.txt
+# Primero, comprobamos que los dos workers, aparecen vivos; si no, refrescamos la pagina de ambos (desde master).
+docker exec hdfs-namenode hdfs dfsadmin -report | grep -i "live datanodes"
+# Paramos el worker 1
+exit
+vagrant ssh worker1
+docker stop hdfs-datanode spark-worker
+# Leemos el fichero, pero con un datanode caido, no debe dar fallos porque el cliente lee la replica que sigue viva en el worker2
+docker exec hdfs-namenode hdfs dfs -cat /data/prueba.txt | head -3
+docker exec hdfs-namenode hdfs dfs -cat /data/salida/part-00000 | head -3
+# Esperamos la deteccion del fallo, debe salir un datonode unicamamente (porque uno de los workers esta caido) y los bloques replicados deben estar sanos (HEALTHY)
+docker exec hdfs-namenode hdfs dfsadmin -report | grep -i "live datanodes"
+docker exec hdfs-namenode hdfs fsck /data/prueba.txt | grep -E "Under|Status|Live"
+# Lanzamos el job con un solo worker esta vez y añadimos un grep para que filtre la salida y nos muestre lo que queremos
+docker exec spark-master /opt/spark/bin/spark-submit /jobs/wordcount.py hdfs:///data/prueba.txt hdfs:///data/salida_1worker 2>&1 | grep -E "Tareas por nodo|Palabras distintas"
+# Levantamos el worker1
+exit
+vagrant ssh worker1
+docker start hdfs-datanode spark-worker
 ```
+
+
+
 Los datos siguen disponibles gracias a la réplica en worker2 (fsck puede mostrar bloques "under-replicated", pero ninguno missing ni corrupt). Para restaurar: `vagrant up worker1`.
 EOF
 
