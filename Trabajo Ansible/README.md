@@ -60,7 +60,7 @@ docker exec spark-master /opt/spark/bin/spark-submit /jobs/wordcount.py hdfs:///
 docker exec hdfs-namenode hdfs dfs -ls /data/salida
 # Este comando muestra el numero de palabras repetidas que ha contado
 docker exec hdfs-namenode hdfs dfs -cat /data/salida/part-* | head
-
+```
 
 ## Prueba 3. Parar un worker y leer el fichero
 ```bash
