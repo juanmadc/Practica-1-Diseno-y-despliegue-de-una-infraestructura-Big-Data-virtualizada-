@@ -15,6 +15,13 @@
     mode: "0644"
   notify: Reiniciar contenedor Spark
 
+- name: Copiar metrics.properties para exponer metricas en Prometheus
+  ansible.builtin.copy:
+    src: metrics.properties
+    dest: "{{ spark_conf_dir }}/metrics.properties"
+    mode: "0644"
+  notify: Reiniciar contenedor Spark
+
 - name: Copiar el job de ejemplo (contador de palabras)
   ansible.builtin.copy:
     src: wordcount.py
@@ -45,6 +52,7 @@
       HADOOP_USER_NAME: hadoop
     volumes:
       - "{{ spark_conf_dir }}/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro"
+      - "{{ spark_conf_dir }}/metrics.properties:/opt/spark/conf/metrics.properties:ro"
       - "{{ spark_jobs_dir }}:/jobs:ro"
 
 - name: Esperar a que el Spark Master acepte conexiones (RPC y web)

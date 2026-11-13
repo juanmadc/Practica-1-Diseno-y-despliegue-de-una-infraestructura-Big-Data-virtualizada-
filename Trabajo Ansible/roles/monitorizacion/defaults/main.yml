@@ -1,0 +1,22 @@
+---
+mon_dir: "/opt/monitorizacion"
+mon_net: "red_monitorizacion"
+
+# Imagenes con version fijada (sin usar latest)
+prometheus_image: "prom/prometheus:v2.53.1"
+alertmanager_image: "prom/alertmanager:v0.27.0"
+grafana_image: "grafana/grafana:11.1.0"
+
+# Puertos publicados en el master
+prometheus_port: 9090
+alertmanager_port: 9093
+grafana_port: 3000
+
+# Puertos de exportadores
+node_exporter_port: 9100
+cadvisor_port: 8082
+
+# IPs privadas del cluster
+master_ip: "{{ hostvars['master']['ip_privada'] | default('192.168.56.10') }}"
+worker1_ip: "{{ hostvars['worker1']['ip_privada'] | default('192.168.56.11') }}"
+worker2_ip: "{{ hostvars['worker2']['ip_privada'] | default('192.168.56.12') }}"

@@ -1,0 +1,7 @@
+---
+node_exporter_image: "prom/node-exporter:v1.8.2"
+node_exporter_port: 9100
+
+cadvisor_image: "gcr.io/cadvisor/cadvisor:v0.49.1"
+# Se usa el puerto 8082 porque el 8080 lo ocupa Spark Master en el nodo master
+cadvisor_port: 8082

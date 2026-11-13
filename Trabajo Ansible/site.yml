@@ -50,3 +50,17 @@
       ansible.builtin.include_role:
         name: spark
         tasks_from: verify
+
+- name: Desplegar exportadores de metricas en todos los nodos
+  hosts: all
+  become: true
+  roles:
+    - exportadores
+
+- name: Desplegar pila de monitorizacion en el nodo Master
+  hosts: master
+  become: true
+  vars_files:
+    - secretos.yml
+  roles:
+    - monitorizacion

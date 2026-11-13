@@ -1,0 +1,50 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - "alertmanager:9093"
+
+rule_files:
+  - "/etc/prometheus/reglas.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets:
+          - "{{ master_ip }}:{{ node_exporter_port }}"
+          - "{{ worker1_ip }}:{{ node_exporter_port }}"
+          - "{{ worker2_ip }}:{{ node_exporter_port }}"
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets:
+          - "{{ master_ip }}:{{ cadvisor_port }}"
+          - "{{ worker1_ip }}:{{ cadvisor_port }}"
+          - "{{ worker2_ip }}:{{ cadvisor_port }}"
+
+  - job_name: 'hdfs_namenode'
+    metrics_path: '/prom'
+    static_configs:
+      - targets:
+          - "{{ master_ip }}:9870"
+
+  - job_name: 'spark_master'
+    metrics_path: '/metrics/master/prometheus/'
+    static_configs:
+      - targets:
+          - "{{ master_ip }}:8080"
+
+  - job_name: 'spark_workers'
+    metrics_path: '/metrics/prometheus/'
+    static_configs:
+      - targets:
+          - "{{ worker1_ip }}:8081"
+          - "{{ worker2_ip }}:8081"

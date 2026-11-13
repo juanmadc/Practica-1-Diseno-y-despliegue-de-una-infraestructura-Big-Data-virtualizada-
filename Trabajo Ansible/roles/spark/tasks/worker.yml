@@ -1,4 +1,17 @@
 ---
+- name: Crear el directorio de configuración de Spark en el worker
+  ansible.builtin.file:
+    path: "{{ spark_conf_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Copiar metrics.properties en el worker para Prometheus
+  ansible.builtin.copy:
+    src: metrics.properties
+    dest: "{{ spark_conf_dir }}/metrics.properties"
+    mode: "0644"
+  notify: Reiniciar contenedor Spark
+
 # SPARK_WORKER_CORES / SPARK_WORKER_MEMORY equivalen a --cores / --memory.
 # Limitar los cores por worker obliga a Spark a usar los dos workers.
 - name: Arrancar el contenedor Spark Worker
@@ -25,3 +38,5 @@
     env:
       SPARK_DAEMON_MEMORY: "{{ spark_daemon_memory }}"
       HADOOP_USER_NAME: hadoop
+    volumes:
+      - "{{ spark_conf_dir }}/metrics.properties:/opt/spark/conf/metrics.properties:ro"

@@ -1,0 +1,26 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname', 'job']
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 2h
+  receiver: 'telegram'
+
+receivers:
+  - name: 'telegram'
+    telegram_configs:
+      - bot_token: "{{ telegram_bot_token }}"
+        chat_id: {{ telegram_chat_id }}
+        parse_mode: 'HTML'
+        send_resolved: true
+        message: |
+          {{ if eq .Status "firing" }}🚨 <b>[ALERTA DISPARADA]</b>{{ else }}✅ <b>[ALERTA RESUELTA]</b>{{ end }}
+          {{ range .Alerts }}
+          <b>Alerta:</b> {{ .Labels.alertname }}
+          <b>Gravedad:</b> {{ .Labels.severity }}
+          <b>Instancia:</b> {{ .Labels.instance }}
+          <b>Resumen:</b> {{ .Annotations.summary }}
+          🔍 <b>Qué comprobar primero:</b> {{ .Annotations.que_comprobar_primero }}
+          {{ end }}

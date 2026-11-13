@@ -1,0 +1,102 @@
+---
+- name: Crear directorios para la pila de monitorizacion
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ mon_dir }}/prometheus"
+    - "{{ mon_dir }}/alertmanager"
+    - "{{ mon_dir }}/grafana/provisioning/datasources"
+    - "{{ mon_dir }}/grafana/provisioning/dashboards"
+    - "{{ mon_dir }}/grafana/dashboards"
+
+- name: Crear red Docker de monitorizacion
+  community.docker.docker_network:
+    name: "{{ mon_net }}"
+    state: present
+
+- name: Crear volumenes persistentes para Prometheus y Grafana
+  community.docker.docker_volume:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - prometheus_data
+    - grafana_data
+
+- name: Generar ficheros de configuracion desde plantillas
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: '0644'
+  loop:
+    - { src: 'prometheus.yml.j2', dest: '{{ mon_dir }}/prometheus/prometheus.yml' }
+    - { src: 'reglas.yml.j2', dest: '{{ mon_dir }}/prometheus/reglas.yml' }
+    - { src: 'alertmanager.yml.j2', dest: '{{ mon_dir }}/alertmanager/alertmanager.yml' }
+    - { src: 'datasource.yml.j2', dest: '{{ mon_dir }}/grafana/provisioning/datasources/datasource.yml' }
+    - { src: 'dashboards.yml.j2', dest: '{{ mon_dir }}/grafana/provisioning/dashboards/dashboards.yml' }
+
+- name: Copiar JSON del panel 'Clúster Big Data' a Grafana
+  ansible.builtin.copy:
+    src: panel.json
+    dest: "{{ mon_dir }}/grafana/dashboards/panel.json"
+    mode: '0644'
+
+- name: Arrancar contenedor Alertmanager
+  community.docker.docker_container:
+    name: alertmanager
+    image: "{{ alertmanager_image }}"
+    state: started
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ mon_net }}"
+    published_ports:
+      - "{{ alertmanager_port }}:9093"
+    volumes:
+      - "{{ mon_dir }}/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro"
+
+- name: Arrancar contenedor Prometheus
+  community.docker.docker_container:
+    name: prometheus
+    image: "{{ prometheus_image }}"
+    state: started
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ mon_net }}"
+    published_ports:
+      - "{{ prometheus_port }}:9090"
+    volumes:
+      - "{{ mon_dir }}/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
+      - "{{ mon_dir }}/prometheus/reglas.yml:/etc/prometheus/reglas.yml:ro"
+      - "prometheus_data:/prometheus"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+
+- name: Arrancar contenedor Grafana
+  community.docker.docker_container:
+    name: grafana
+    image: "{{ grafana_image }}"
+    state: started
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ mon_net }}"
+    published_ports:
+      - "{{ grafana_port }}:3000"
+    env:
+      GF_SECURITY_ADMIN_USER: "admin"
+      GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
+    volumes:
+      - "grafana_data:/var/lib/grafana"
+      - "{{ mon_dir }}/grafana/provisioning:/etc/grafana/provisioning:ro"
+      - "{{ mon_dir }}/grafana/dashboards:/var/lib/grafana/dashboards:ro"
+
+- name: Esperar a que Prometheus, Alertmanager y Grafana estén activos
+  ansible.builtin.wait_for:
+    host: "127.0.0.1"
+    port: "{{ item }}"
+    timeout: 120
+  loop:
+    - "{{ prometheus_port }}"
+    - "{{ alertmanager_port }}"
+    - "{{ grafana_port }}"

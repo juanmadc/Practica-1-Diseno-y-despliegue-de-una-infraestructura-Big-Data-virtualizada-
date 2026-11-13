@@ -1,0 +1,38 @@
+groups:
+  - name: alertas_cluster_bigdata
+    rules:
+      - alert: NodoOServicioCaido
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critica
+        annotations:
+          summary: "Servicio caido: {{ $labels.job }} en {{ $labels.instance }}"
+          que_comprobar_primero: "Comprobar estado de la VM con 'vagrant status' y contenedores con 'docker ps -a' en {{ $labels.instance }}."
+
+      - alert: HDFSDataNodeCaido
+        expr: dfs_fs_namesystem_state_num_live_data_nodes < 2
+        for: 1m
+        labels:
+          severity: critica
+        annotations:
+          summary: "HDFS tiene menos de 2 DataNodes vivos (actual: {{ $value }})"
+          que_comprobar_primero: "Revisar el contenedor 'hdfs-datanode' en worker1 y worker2 ('docker logs hdfs-datanode') y la red con el master."
+
+      - alert: HDFSBloquesSubReplicados
+        expr: dfs_fs_namesystem_state_under_replicated_blocks > 0
+        for: 2m
+        labels:
+          severity: aviso
+        annotations:
+          summary: "Hay {{ $value }} bloques sub-replicados en HDFS"
+          que_comprobar_primero: "Ejecutar 'docker exec hdfs-namenode hdfs fsck /' y verificar que ambos DataNodes esten activos."
+
+      - alert: DiscoLlenandoseEn24h
+        expr: predict_linear(node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay"}[1h], 24 * 3600) < 0
+        for: 5m
+        labels:
+          severity: aviso
+        annotations:
+          summary: "El disco raiz de {{ $labels.instance }} se llenara en menos de 24h"
+          que_comprobar_primero: "Ejecutar 'df -h' en {{ $labels.instance }} y revisar espacio ocupado en /var/lib/docker y bloques de HDFS."

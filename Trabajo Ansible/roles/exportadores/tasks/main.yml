@@ -1,0 +1,41 @@
+---
+- name: Arrancar contenedor node_exporter en la IP privada
+  community.docker.docker_container:
+    name: node_exporter
+    image: "{{ node_exporter_image }}"
+    state: started
+    restart_policy: unless-stopped
+    published_ports:
+      - "{{ ip_privada }}:{{ node_exporter_port }}:9100"
+    pid_mode: host
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - '/:/host:ro,rslave'
+
+- name: Arrancar contenedor cAdvisor en el puerto 8082 de la IP privada
+  community.docker.docker_container:
+    name: cadvisor
+    image: "{{ cadvisor_image }}"
+    state: started
+    restart_policy: unless-stopped
+    published_ports:
+      - "{{ ip_privada }}:{{ cadvisor_port }}:8080"
+    volumes:
+      - '/:/rootfs:ro'
+      - '/var/run:/var/run:ro'
+      - '/sys:/sys:ro'
+      - '/var/lib/docker/:/var/lib/docker:ro'
+      - '/dev/disk/:/dev/disk:ro'
+    devices:
+      - '/dev/kmsg:/dev/kmsg'
+    privileged: true
+
+- name: Esperar a que node_exporter y cAdvisor escuchen en sus puertos
+  ansible.builtin.wait_for:
+    host: "{{ ip_privada }}"
+    port: "{{ item }}"
+    timeout: 60
+  loop:
+    - "{{ node_exporter_port }}"
+    - "{{ cadvisor_port }}"
