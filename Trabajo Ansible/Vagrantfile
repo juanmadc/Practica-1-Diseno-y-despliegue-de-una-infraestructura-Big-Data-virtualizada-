@@ -13,7 +13,7 @@
 BOX = "bento/ubuntu-24.04"
 
 NODOS = [
-  { nombre: "master",  ip: "192.168.56.20", mem: 2048, cpus: 2 },
+  { nombre: "master",  ip: "192.168.56.20", mem: 4096, cpus: 2 },
   { nombre: "worker1", ip: "192.168.56.21", mem: 2048, cpus: 2 },
   { nombre: "worker2", ip: "192.168.56.22", mem: 2048, cpus: 2 },
 ]
