@@ -16,6 +16,7 @@ receivers:
         parse_mode: 'HTML'
         send_resolved: true
         message: |
+{% raw %}
           {{ if eq .Status "firing" }}🚨 <b>[ALERTA DISPARADA]</b>{{ else }}✅ <b>[ALERTA RESUELTA]</b>{{ end }}
           {{ range .Alerts }}
           <b>Alerta:</b> {{ .Labels.alertname }}
@@ -24,3 +25,4 @@ receivers:
           <b>Resumen:</b> {{ .Annotations.summary }}
           🔍 <b>Qué comprobar primero:</b> {{ .Annotations.que_comprobar_primero }}
           {{ end }}
+{% endraw %}

@@ -1,3 +1,4 @@
+{% raw %}
 groups:
   - name: alertas_cluster_bigdata
     rules:
@@ -36,3 +37,4 @@ groups:
         annotations:
           summary: "El disco raiz de {{ $labels.instance }} se llenara en menos de 24h"
           que_comprobar_primero: "Ejecutar 'df -h' en {{ $labels.instance }} y revisar espacio ocupado en /var/lib/docker y bloques de HDFS."
+{% endraw %}
