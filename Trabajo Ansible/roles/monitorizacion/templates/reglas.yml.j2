@@ -12,7 +12,7 @@ groups:
           que_comprobar_primero: "Comprobar estado de la VM con 'vagrant status' y contenedores con 'docker ps -a' en {{ $labels.instance }}."
 
       - alert: HDFSDataNodeCaido
-        expr: dfs_fs_namesystem_state_num_live_data_nodes < 2
+        expr: fs_namesystem_num_live_data_nodes < 2
         for: 1m
         labels:
           severity: critica
@@ -21,7 +21,7 @@ groups:
           que_comprobar_primero: "Revisar el contenedor 'hdfs-datanode' en worker1 y worker2 ('docker logs hdfs-datanode') y la red con el master."
 
       - alert: HDFSBloquesSubReplicados
-        expr: dfs_fs_namesystem_state_under_replicated_blocks > 0
+        expr: fs_namesystem_under_replicated_blocks > 0
         for: 2m
         labels:
           severity: aviso

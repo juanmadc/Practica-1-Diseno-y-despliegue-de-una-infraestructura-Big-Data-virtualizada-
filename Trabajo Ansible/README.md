@@ -83,9 +83,38 @@ exit
 vagrant ssh worker1
 docker start hdfs-datanode spark-worker
 ```
-
-
-
 Los datos siguen disponibles gracias a la réplica en worker2 (fsck puede mostrar bloques "under-replicated", pero ninguno missing ni corrupt). Para restaurar: `vagrant up worker1`.
 EOF
 
+
+## Experimento B: Caida de un worker
+
+
+1. **Preparación de datos replicados en HDFS:**
+   Subir un fichero de prueba con factor de replicación `2` para garantizar una copia en `worker1` y otra en `worker2`:
+   ```bash
+   vagrant ssh master -c 'NN=$(sudo docker ps -q -f "name=namenode") && sudo docker exec $NN bash -c "echo Datos_Experimento_B > /tmp/prueba_b.txt && hdfs dfs -put -f /tmp/prueba_b.txt /prueba_b.txt && hdfs dfs -setrep -w 2 /prueba_b.txt"'
+   ```
+
+2. **Simulación de caída del nodo `worker2`:**
+   Apagar la máquina virtual `worker2` (`192.168.56.22`):
+   ```bash
+   vagrant halt worker2
+   ```
+
+3. **Verificación de alerta temprana y disponibilidad de lectura (minuto 1):**
+   - Comprobar en Prometheus (`http://192.168.56.20:9090/alerts`) y en el grupo de Telegram el disparo de la alerta **`NodoOServicioCaido`** tras cumplirse `for: 1m`.
+   - Verificar que el fichero sigue siendo accesible desde la réplica almacenada en `worker1`:
+     ```bash
+     vagrant ssh master -c 'sudo docker exec $(sudo docker ps -q -f "name=namenode") hdfs dfs -cat /prueba_b.txt'
+     ```
+
+4. **Detección interna de DataNode muerto en HDFS (~10 minutos y 30 segundos):**
+   - Observar en el panel **«Clúster Big Data»** de Grafana (`http://192.168.56.20:3000/d/cluster-big-data`) que `fs_namesystem_num_live_data_nodes` baja a `1`, `fs_namesystem_num_dead_data_nodes` sube a `1` y `fs_namesystem_under_replicated_blocks` pasa a ser mayor que `0` una vez expirado el *heartbeat* de Hadoop (630 s).
+   - Confirmar en Telegram la llegada de las alertas **`HDFSDataNodeCaido`** y **`HDFSBloquesSubReplicados`**.
+
+5. **Recuperación del nodo y resolución de alertas:**
+   Volver a arrancar `worker2` y comprobar en Grafana y Telegram que todos los objetivos regresan a `UP`, los bloques sub-replicados vuelven a `0` y se reciben los avisos `[ALERTA RESUELTA]`:
+   ```bash
+   vagrant up worker2
+   ```

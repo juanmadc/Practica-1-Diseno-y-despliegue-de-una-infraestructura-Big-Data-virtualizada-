@@ -40,8 +40,8 @@
       "id": 3,
       "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
       "targets": [
-        { "expr": "dfs_fs_namesystem_state_num_live_data_nodes", "legendFormat": "DataNodes Vivos", "refId": "A" },
-        { "expr": "dfs_fs_namesystem_state_num_dead_data_nodes", "legendFormat": "DataNodes Muertos", "refId": "B" }
+        { "expr": "fs_namesystem_num_live_data_nodes", "legendFormat": "DataNodes Vivos", "refId": "A" },
+        { "expr": "fs_namesystem_num_dead_data_nodes", "legendFormat": "DataNodes Muertos", "refId": "B" }
       ],
       "title": "HDFS DataNodes Vivos / Muertos",
       "type": "stat"
@@ -138,8 +138,8 @@
       "gridPos": { "h": 7, "w": 16, "x": 0, "y": 22 },
       "id": 12,
       "targets": [
-        { "expr": "dfs_fs_namesystem_state_capacity_used", "legendFormat": "Capacidad Usada", "refId": "A" },
-        { "expr": "dfs_fs_namesystem_state_capacity_remaining", "legendFormat": "Capacidad Libre", "refId": "B" }
+        { "expr": "fs_namesystem_capacity_used", "legendFormat": "Capacidad Usada", "refId": "A" },
+        { "expr": "fs_namesystem_capacity_remaining", "legendFormat": "Capacidad Libre", "refId": "B" }
       ],
       "title": "Capacidad Usada y Libre en HDFS",
       "type": "timeseries"
@@ -150,7 +150,7 @@
       "gridPos": { "h": 7, "w": 8, "x": 16, "y": 22 },
       "id": 13,
       "targets": [
-        { "expr": "dfs_fs_namesystem_state_under_replicated_blocks", "legendFormat": "Bloques Sub-replicados", "refId": "A" }
+        { "expr": "fs_namesystem_under_replicated_blocks", "legendFormat": "Bloques Sub-replicados", "refId": "A" }
       ],
       "title": "Bloques Sub-replicados en HDFS",
       "type": "timeseries"
@@ -169,7 +169,7 @@
       "id": 15,
       "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
       "targets": [
-        { "expr": "metrics_master_apps_Value", "legendFormat": "Apps en ejecución", "refId": "A" }
+        { "expr": "metrics_master_aliveWorkers_Value", "legendFormat": "Apps en ejecución", "refId": "A" }
       ],
       "title": "Aplicaciones Spark en Ejecución",
       "type": "stat"
