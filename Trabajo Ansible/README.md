@@ -2,7 +2,7 @@ cat > README.md << 'EOF'
 # Práctica 1: Infraestructura Big Data virtualizada (HDFS + Spark)
 
 **Autores:** JUAN MANUEL DELFA CASADO Y RAUL DEL FRESNO PEREZ
-**Repositorio git:** https://github.com/USUARIO/NOMBRE-REPO
+**Repositorio git:** https://github.com/juanmadc/Practica-1-Diseno-y-despliegue-de-una-infraestructura-Big-Data-virtualizada-.git
 
 ## Arquitectura
 
@@ -87,6 +87,26 @@ Los datos siguen disponibles gracias a la réplica en worker2 (fsck puede mostra
 EOF
 
 
+## Experimento A. Reparto de carga en Spark (2 workers vs 1 worker)
+
+# Generamos un fichero de prueba en HDFS para medir tiempos y picos de CPU en Grafana
+vagrant ssh master -c 'sudo docker exec hdfs-namenode bash -c "seq 1 8000000 > /tmp/datos_a.txt && hdfs dfs -mkdir -p /data && hdfs dfs -put -f /tmp/datos_a.txt /data/datos_a.txt && hdfs dfs -rm -r -f /data/salida_2workers /data/salida_1worker"'
+
+# 1. Lanzamos el job wordcount.py con los 2 workers activos y medimos el tiempo de ejecucion
+vagrant ssh master -c "time sudo docker exec spark-master /opt/spark/bin/spark-submit /jobs/wordcount.py hdfs:///data/datos_a.txt hdfs:///data/salida_2workers 2>&1 | grep -E 'Tareas por nodo|Palabras distintas|real'"
+
+# 2. Paramos el contenedor spark-worker en worker2 y repetimos el job con 1 solo worker activo
+vagrant ssh worker2 -c "sudo docker stop spark-worker"
+vagrant ssh master -c "time sudo docker exec spark-master /opt/spark/bin/spark-submit /jobs/wordcount.py hdfs:///data/datos_a.txt hdfs:///data/salida_1worker 2>&1 | grep -E 'Tareas por nodo|Palabras distintas|real'"
+
+# Comprobamos en Grafana ([http://192.168.56.20:3000/d/cluster-big-data](http://192.168.56.20:3000/d/cluster-big-data)) la diferencia de tiempo y como en la primera ejecucion el pico de CPU se reparte entre .21 y .22 y en la segunda recae solo sobre .21
+
+# Volvemos a levantar spark-worker en worker2
+vagrant ssh worker2 -c "sudo docker start spark-worker"
+
+
+
+
 ## Experimento B: Caida de un worker
 
 
@@ -118,3 +138,15 @@ EOF
    ```bash
    vagrant up worker2
    ```
+
+
+
+## Experimento C. Línea base del clúster en reposo (30 minutos) y dimensionamiento
+bash
+# Mantenemos el cluster encendido y sin jobs activos durante 30 minutos
+vagrant status
+
+# En Grafana ([http://192.168.56.20:3000/d/cluster-big-data](http://192.168.56.20:3000/d/cluster-big-data)) seleccionamos el rango "Last 30 minutes" y revisamos la fila "2. ¿Van justos los recursos?":
+# - CPU y Steal por VM (%): < 6% en reposo en los 3 nodos (steal ~0%)
+# - Memoria RAM por VM (%): ~46% en master (justifica ampliar el master a 4096 MB en el Vagrantfile) y ~26% en worker1 y worker2
+# - Disco Raiz por VM (%): ~35% estable gracias al limite de retencion de Prometheus (7d / 1GB)

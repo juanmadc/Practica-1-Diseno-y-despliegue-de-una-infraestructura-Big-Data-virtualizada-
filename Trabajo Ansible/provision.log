@@ -1,0 +1,328 @@
+==> worker2: Running provisioner: ansible...
+    worker2: Running ansible-galaxy...
+Starting galaxy collection install process
+Nothing to do. All requested collections are already installed. If you want to reinstall them, consider using `--force`.
+    worker2: Running ansible-playbook...
+[WARNING]: Deprecation warnings can be disabled by setting `deprecation_warnings=False` in ansible.cfg.
+[DEPRECATION WARNING]: The '--inventory-file' argument is deprecated. This feature will be removed from ansible-core version 2.23. Use -i or --inventory instead.
+
+PLAY [Configuración común de todos los nodos] **********************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [master]
+ok: [worker2]
+ok: [worker1]
+
+TASK [common : Actualizar el índice de paquetes apt] ***************************
+ok: [worker2]
+ok: [worker1]
+ok: [master]
+
+TASK [common : Instalar paquetes base, Docker y dependencias de Ansible] *******
+ok: [worker2]
+ok: [master]
+ok: [worker1]
+
+TASK [common : Arrancar y habilitar el servicio Docker] ************************
+ok: [worker1]
+ok: [worker2]
+ok: [master]
+
+TASK [common : Permitir al usuario vagrant usar Docker sin sudo] ***************
+ok: [master]
+ok: [worker2]
+ok: [worker1]
+
+TASK [common : Registrar los nodos del clúster en /etc/hosts] ******************
+ok: [master] => (item=master)
+ok: [worker2] => (item=master)
+ok: [worker1] => (item=master)
+ok: [worker2] => (item=worker1)
+ok: [master] => (item=worker1)
+ok: [worker1] => (item=worker1)
+ok: [worker2] => (item=worker2)
+ok: [worker1] => (item=worker2)
+ok: [master] => (item=worker2)
+
+TASK [common : Comprobar la versión de Docker] *********************************
+ok: [worker1]
+ok: [master]
+ok: [worker2]
+
+TASK [common : Comprobar que este nodo ve a todos los demás por nombre] ********
+ok: [master] => (item=master)
+ok: [worker2] => (item=master)
+ok: [worker1] => (item=master)
+ok: [master] => (item=worker1)
+ok: [worker2] => (item=worker1)
+ok: [worker1] => (item=worker1)
+ok: [worker2] => (item=worker2)
+ok: [master] => (item=worker2)
+ok: [worker1] => (item=worker2)
+
+TASK [common : Mostrar resultado] **********************************************
+ok: [master] => {
+    "msg": "master: Docker version 29.1.3, build 29.1.3-0ubuntu3~24.04.2 y red del clúster OK"
+}
+ok: [worker1] => {
+    "msg": "worker1: Docker version 29.1.3, build 29.1.3-0ubuntu3~24.04.2 y red del clúster OK"
+}
+ok: [worker2] => {
+    "msg": "worker2: Docker version 29.1.3, build 29.1.3-0ubuntu3~24.04.2 y red del clúster OK"
+}
+
+PLAY [HDFS - NameNode] *********************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [master]
+
+TASK [hdfs : Crear el directorio de configuración de HDFS] *********************
+ok: [master]
+
+TASK [hdfs : Generar core-site.xml (dirección del NameNode)] *******************
+ok: [master]
+
+TASK [hdfs : Generar hdfs-site.xml (replicación 2)] ****************************
+ok: [master]
+
+TASK [hdfs : Descargar la imagen de Hadoop] ************************************
+ok: [master]
+
+TASK [hdfs : Desplegar el NameNode] ********************************************
+included: /mnt/c/Users/juanma/Desktop/2º ASIR/CENY/Trabajo Ansible/Practica-1-Diseno-y-despliegue-de-una-infraestructura-Big-Data-virtualizada-/Trabajo Ansible/roles/hdfs/tasks/namenode.yml for master
+
+TASK [hdfs : Crear el directorio de metadatos del NameNode] ********************
+ok: [master]
+
+TASK [hdfs : Comprobar si el NameNode ya está formateado] **********************
+ok: [master]
+
+TASK [hdfs : Formatear el NameNode (solo la primera vez)] **********************
+skipping: [master]
+
+TASK [hdfs : Arrancar el contenedor NameNode] **********************************
+ok: [master]
+
+TASK [hdfs : Esperar a que el NameNode acepte conexiones (RPC y web)] **********
+ok: [master] => (item=9000)
+ok: [master] => (item=9870)
+
+TASK [hdfs : Desplegar el DataNode] ********************************************
+skipping: [master]
+
+PLAY [HDFS - DataNodes] ********************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [worker1]
+ok: [worker2]
+
+TASK [hdfs : Crear el directorio de configuración de HDFS] *********************
+ok: [worker2]
+ok: [worker1]
+
+TASK [hdfs : Generar core-site.xml (dirección del NameNode)] *******************
+ok: [worker2]
+ok: [worker1]
+
+TASK [hdfs : Generar hdfs-site.xml (replicación 2)] ****************************
+ok: [worker1]
+ok: [worker2]
+
+TASK [hdfs : Descargar la imagen de Hadoop] ************************************
+ok: [worker1]
+ok: [worker2]
+
+TASK [hdfs : Desplegar el NameNode] ********************************************
+skipping: [worker1]
+skipping: [worker2]
+
+TASK [hdfs : Desplegar el DataNode] ********************************************
+included: /mnt/c/Users/juanma/Desktop/2º ASIR/CENY/Trabajo Ansible/Practica-1-Diseno-y-despliegue-de-una-infraestructura-Big-Data-virtualizada-/Trabajo Ansible/roles/hdfs/tasks/datanode.yml for worker1, worker2
+
+TASK [hdfs : Crear el directorio de datos del DataNode] ************************
+changed: [worker1]
+changed: [worker2]
+
+TASK [hdfs : Arrancar el contenedor DataNode] **********************************
+ok: [worker2]
+ok: [worker1]
+
+PLAY [HDFS - Verificación del clúster] *****************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [master]
+
+TASK [Comprobar que HDFS tiene todos los DataNodes y replicación 2] ************
+included: hdfs for master
+
+TASK [hdfs : Esperar a que se registren todos los DataNodes] *******************
+ok: [master]
+
+TASK [hdfs : Leer la replicación configurada] **********************************
+ok: [master]
+
+TASK [hdfs : Comprobar replicación y DataNodes] ********************************
+ok: [master] => {
+    "changed": false,
+    "msg": "HDFS OK: 2 DataNodes vivos, replicación 2. UI: http://192.168.56.20:9870"
+}
+
+PLAY [Spark - Master] **********************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [master]
+
+TASK [spark : Descargar la imagen de Spark] ************************************
+ok: [master]
+
+TASK [spark : Desplegar el Spark Master] ***************************************
+included: /mnt/c/Users/juanma/Desktop/2º ASIR/CENY/Trabajo Ansible/Practica-1-Diseno-y-despliegue-de-una-infraestructura-Big-Data-virtualizada-/Trabajo Ansible/roles/spark/tasks/master.yml for master
+
+TASK [spark : Crear los directorios de configuración y de jobs] ****************
+ok: [master] => (item=/opt/spark-cluster/conf)
+ok: [master] => (item=/opt/spark-cluster/jobs)
+
+TASK [spark : Generar spark-defaults.conf] *************************************
+ok: [master]
+
+TASK [spark : Generar metrics.properties para exponer metricas en Prometheus] ***
+ok: [master]
+
+TASK [spark : Copiar el job de ejemplo (contador de palabras)] *****************
+ok: [master]
+
+TASK [spark : Arrancar el contenedor Spark Master] *****************************
+changed: [master]
+
+TASK [spark : Esperar a que el Spark Master acepte conexiones (RPC y web)] *****
+ok: [master] => (item=7077)
+ok: [master] => (item=8080)
+
+TASK [spark : Desplegar el Spark Worker] ***************************************
+skipping: [master]
+
+PLAY [Spark - Workers] *********************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [worker2]
+ok: [worker1]
+
+TASK [spark : Descargar la imagen de Spark] ************************************
+ok: [worker1]
+ok: [worker2]
+
+TASK [spark : Desplegar el Spark Master] ***************************************
+skipping: [worker1]
+skipping: [worker2]
+
+TASK [spark : Desplegar el Spark Worker] ***************************************
+included: /mnt/c/Users/juanma/Desktop/2º ASIR/CENY/Trabajo Ansible/Practica-1-Diseno-y-despliegue-de-una-infraestructura-Big-Data-virtualizada-/Trabajo Ansible/roles/spark/tasks/worker.yml for worker1, worker2
+
+TASK [spark : Crear el directorio de configuración de Spark en el worker] ******
+ok: [worker1]
+ok: [worker2]
+
+TASK [spark : Generar metrics.properties en el worker para Prometheus] *********
+ok: [worker2]
+ok: [worker1]
+
+TASK [spark : Arrancar el contenedor Spark Worker] *****************************
+changed: [worker2]
+changed: [worker1]
+
+PLAY [Spark - Verificación del clúster] ****************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [master]
+
+TASK [Comprobar que Spark tiene todos los workers] *****************************
+included: spark for master
+
+TASK [spark : Esperar a que los workers se registren en el Spark Master] *******
+FAILED - RETRYING: [master]: spark : Esperar a que los workers se registren en el Spark Master (19 retries left).
+FAILED - RETRYING: [master]: spark : Esperar a que los workers se registren en el Spark Master (18 retries left).
+ok: [master]
+
+TASK [spark : Spark OK] ********************************************************
+ok: [master] => {
+    "msg": "Spark OK: 2 workers ALIVE. UI: http://192.168.56.20:8080"
+}
+
+PLAY [Desplegar exportadores de metricas en todos los nodos] *******************
+
+TASK [Gathering Facts] *********************************************************
+ok: [worker2]
+ok: [worker1]
+ok: [master]
+
+TASK [exportadores : Arrancar contenedor node_exporter en la IP privada] *******
+ok: [master]
+ok: [worker1]
+changed: [worker2]
+
+TASK [exportadores : Arrancar contenedor cAdvisor en el puerto 8082 de la IP privada] ***
+ok: [master]
+ok: [worker1]
+changed: [worker2]
+
+TASK [exportadores : Esperar a que node_exporter y cAdvisor escuchen en sus puertos] ***
+ok: [master] => (item=9100)
+ok: [worker1] => (item=9100)
+ok: [worker2] => (item=9100)
+ok: [master] => (item=8082)
+ok: [worker1] => (item=8082)
+ok: [worker2] => (item=8082)
+
+PLAY [Desplegar pila de monitorizacion en el nodo Master] **********************
+
+TASK [Gathering Facts] *********************************************************
+ok: [master]
+
+TASK [monitorizacion : Crear directorios para la pila de monitorizacion] *******
+ok: [master] => (item=/opt/monitorizacion/prometheus)
+ok: [master] => (item=/opt/monitorizacion/alertmanager)
+ok: [master] => (item=/opt/monitorizacion/grafana/provisioning/datasources)
+ok: [master] => (item=/opt/monitorizacion/grafana/provisioning/dashboards)
+ok: [master] => (item=/opt/monitorizacion/grafana/dashboards)
+
+TASK [monitorizacion : Crear red Docker de monitorizacion] *********************
+ok: [master]
+
+TASK [monitorizacion : Crear volumenes persistentes para Prometheus y Grafana] ***
+ok: [master] => (item=prometheus_data)
+ok: [master] => (item=grafana_data)
+
+TASK [monitorizacion : Generar ficheros de configuracion desde plantillas] *****
+ok: [master] => (item={'src': 'prometheus.yml.j2', 'dest': '/opt/monitorizacion/prometheus/prometheus.yml'})
+ok: [master] => (item={'src': 'reglas.yml.j2', 'dest': '/opt/monitorizacion/prometheus/reglas.yml'})
+[ERROR]: Task failed: Syntax error in template: expected token 'end of print statement', got ':'
+
+Task failed.
+Origin: /mnt/c/Users/juanma/Desktop/2º ASIR/CENY/Trabajo Ansible/Practica-1-Diseno-y-despliegue-de-una-infraestructura-Big-Data-virtualizada-/Trabajo Ansible/roles/monitorizacion/tasks/main.yml:27:3
+
+25     - grafana_data
+26
+27 - name: Generar ficheros de configuracion desde plantillas
+     ^ column 3
+
+<<< caused by >>>
+
+Syntax error in template: expected token 'end of print statement', got ':'
+Origin: /mnt/c/Users/juanma/Desktop/2º ASIR/CENY/Trabajo Ansible/Practica-1-Diseno-y-despliegue-de-una-infraestructura-Big-Data-virtualizada-/Trabajo Ansible/roles/monitorizacion/templates/alertmanager.yml.j2:14
+
+12   - name: 'telegram'
+13     telegram_configs:
+14       - bot_token: "{{ bot9135328045:AAFGgDhwI8j3s8yKLKXbLYx
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+failed: [master] (item={'src': 'alertmanager.yml.j2', 'dest': '/opt/monitorizacion/alertmanager/alertmanager.yml'}) => {"ansible_loop_var": "item", "changed": false, "item": {"dest": "/opt/monitorizacion/alertmanager/alertmanager.yml", "src": "alertmanager.yml.j2"}, "msg": "Task failed: Syntax error in template: expected token 'end of print statement', got ':'"}
+ok: [master] => (item={'src': 'datasource.yml.j2', 'dest': '/opt/monitorizacion/grafana/provisioning/datasources/datasource.yml'})
+ok: [master] => (item={'src': 'dashboards.yml.j2', 'dest': '/opt/monitorizacion/grafana/provisioning/dashboards/dashboards.yml'})
+
+PLAY RECAP *********************************************************************
+master                     : ok=45   changed=1    unreachable=0    failed=1    skipped=3    rescued=0    ignored=0   
+worker1                    : ok=27   changed=2    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
+worker2                    : ok=27   changed=4    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
+
+Ansible failed to complete successfully. Any error output should be
+visible above. Please fix these errors and try again.
